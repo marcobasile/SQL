@@ -1,0 +1,102 @@
+ /*Warby Parker is a transformative lifestyle brand with a lofty objective: to offer designer eyewear at a revolutionary price while leading the way for socially conscious businesses. Founded in 2010 and named after two characters in an early Jack Kerouac journal, Warby Parker believes in creative thinking, smart design, and doing good in the world. For every pair of eyeglasses and sunglasses sold, a pair is distributed to someone in need.
+
+In this project, you will analyze different Warby Parker’s marketing funnels in order to calculate conversion rates. Here are the funnels and the tables that you are given:
+
+Quiz Funnel:
+
+survey
+Home Try-On Funnel:
+
+quiz
+home_try_on
+purchase*/
+ 
+ /*Select all columns from the first 10 rows*/
+ 
+ select * 
+ from survey 
+ limit 10;
+
+
+ /*Let’s analyze how many users move from Question 1 to Question 2, etc*/
+
+select question, count(distinct user_id) as 'n_of_users'
+from survey
+group by question
+order by 2 desc;
+
+ /*Let’s find out whether or not users who get more pairs to try on at home will be more likely to make a purchase.
+
+The data will be distributed across three tables:
+
+quiz
+home_try_on
+purchase
+Examine the first five rows of each table*/
+
+
+select *
+from quiz
+limit 5;
+
+select *
+from home_try_on
+limit 5;
+
+select *
+from purchase
+limit 5;
+
+
+
+/*LEFT JOIN WITH MULTIPLE TABLES
+
+If the user has any entries in home_try_on, then is_home_try_on will be True.
+number_of_pairs comes from home_try_on table
+If the user has any entries in purchase, then is_purchase will be True.*/
+
+select q.user_id, q.user_id is not null as 'is_quiz', t.user_id is not null as 'is_home_try_on', p.user_id is not null as 'is_purchase'
+from quiz as 'q'
+left join home_try_on as 't'
+ON q.user_id = t.user_id
+left join purchase as 'p'
+on t.user_id = p.user_id
+order by is_quiz desc
+limit 10;
+
+/*OVERALL CONVERSION RATES
+
+We can calculate overall conversion rates by aggregating across all rows.
+We can compare conversion from quiz→home_try_on and home_try_on→purchase.
+We can calculate the difference in purchase rates between customers who had 3 number_of_pairs with ones who had 5.*/
+
+with funnel as 
+(
+select q.user_id, q.user_id is not null as 'is_quiz', t.user_id is not null as 'is_home_try_on', p.user_id is not null as 'is_purchase'
+from quiz as 'q'
+left join home_try_on as 't'
+ON q.user_id = t.user_id
+left join purchase as 'p'
+on t.user_id = p.user_id
+order by is_quiz desc
+limit 10
+)
+select sum(is_quiz) as 'num_quiz', sum(is_home_try_on) as 'num_try_on', sum(is_purchase) as 'num_purchase', 100* sum(is_home_try_on) / sum(is_quiz) as 'quiz_to_try %', 
+100* sum(is_purchase) / sum(is_home_try_on) as 'tryon_to_purchase %'
+from funnel;
+
+/*which is the best seller model?*/
+
+with funnel as 
+(
+select q.user_id, q.user_id is not null as 'is_quiz', t.user_id is not null as 'is_home_try_on', p.user_id is not null as 'is_purchase'
+from quiz as 'q'
+left join home_try_on as 't'
+ON q.user_id = t.user_id
+left join purchase as 'p'
+on t.user_id = p.user_id
+order by is_quiz desc
+limit 10
+)
+select count(p.model), sum(is_purchase) as 'num_purchase'
+from funnel;
